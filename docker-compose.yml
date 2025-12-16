@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: posta_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-posta_giro}
+      POSTGRES_USER: ${POSTGRES_USER:-posta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-posta_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - posta_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: posta_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - posta_redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  posta_postgres_data:
+  posta_redis_data:
