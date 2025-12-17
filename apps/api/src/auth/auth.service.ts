@@ -9,7 +9,7 @@ export class AuthService {
     private readonly roles: RolesService,
   ) {}
 
-  async register(params: { phone: string; password: string; displayName?: string }) {
+  async register(params: { phone: string; password: string; displayName?: string; nidaNumber?: string }) {
     const account = await this.accounts.createAccount(params);
     await this.roles.assignRoleByKey(account.id, 'citizen');
     const accountRoles = await this.roles.getRolesForAccount(account.id);
@@ -19,6 +19,7 @@ export class AuthService {
         id: account.id,
         phoneE164: account.phone_e164,
         displayName: account.display_name,
+        nidaNumber: (account as any).nida_number ?? null,
         status: account.status,
       },
       roles: accountRoles.map((r) => r.key),
@@ -36,6 +37,7 @@ export class AuthService {
         id: account.id,
         phoneE164: account.phone_e164,
         displayName: account.display_name,
+        nidaNumber: (account as any).nida_number ?? null,
         status: account.status,
       },
       roles: accountRoles.map((r) => r.key),

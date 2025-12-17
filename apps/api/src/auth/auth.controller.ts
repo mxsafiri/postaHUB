@@ -18,7 +18,12 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() dto: RegisterDto, @Req() req: Request) {
-    const result = await this.auth.register({ phone: dto.phone, password: dto.password, displayName: dto.displayName });
+    const result = await this.auth.register({
+      phone: dto.phone,
+      password: dto.password,
+      displayName: dto.displayName,
+      nidaNumber: dto.nidaNumber,
+    });
     req.session.accountId = result.account.id;
     return result;
   }
@@ -56,6 +61,7 @@ export class AuthController {
         id: account.id,
         phoneE164: account.phone_e164,
         displayName: account.display_name,
+        nidaNumber: (account as any).nida_number ?? null,
         status: account.status,
       },
       roles: roles.map((r) => r.key),

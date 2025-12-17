@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString, Matches, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
@@ -11,4 +11,9 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{20}$/)
+  nidaNumber?: string;
 }

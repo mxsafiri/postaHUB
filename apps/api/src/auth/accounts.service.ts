@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import argon2 from 'argon2';
 import { DatabaseService } from '../database/database.service';
 import { normalizePhoneToE164 } from '../common/phone/normalize-phone';
@@ -7,6 +7,7 @@ export type Account = {
   id: string;
   phone_e164: string;
   display_name: string | null;
+  nida_number?: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -16,22 +17,44 @@ export type Account = {
 export class AccountsService {
   constructor(private readonly db: DatabaseService) {}
 
-  async createAccount(params: { phone: string; password: string; displayName?: string }): Promise<Account> {
-    const phoneE164 = normalizePhoneToE164(params.phone);
+  async createAccount(params: {
+    phone: string;
+    password: string;
+    displayName?: string;
+    nidaNumber?: string;
+  }): Promise<Account> {
+    let phoneE164: string;
+    try {
+      phoneE164 = normalizePhoneToE164(params.phone);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'invalid phone number';
+      throw new BadRequestException(message);
+    }
     const passwordHash = await argon2.hash(params.password);
 
     return this.db.withTransaction(async (q) => {
       const existing = await q('SELECT id FROM accounts WHERE phone_e164 = $1', [phoneE164]);
       if (existing.rowCount && existing.rowCount > 0) {
-        const err = new Error('phone already registered');
-        (err as any).code = 'PHONE_EXISTS';
-        throw err;
+        throw new ConflictException('phone already registered');
       }
 
-      const created = await q(
-        'INSERT INTO accounts (phone_e164, display_name) VALUES ($1, $2) RETURNING *',
-        [phoneE164, params.displayName ?? null],
-      );
+      let created;
+      try {
+        created = await q(
+          'INSERT INTO accounts (phone_e164, display_name, nida_number) VALUES ($1, $2, $3) RETURNING *',
+          [phoneE164, params.displayName ?? null, params.nidaNumber ?? null],
+        );
+      } catch (e) {
+        const err = e as any;
+        if (err?.code === '23505') {
+          const constraint = String(err?.constraint ?? '');
+          if (constraint === 'accounts_nida_number_unique_idx') {
+            throw new ConflictException('nida number already registered');
+          }
+          throw new ConflictException('account already exists');
+        }
+        throw e;
+      }
 
       const account = created.rows[0] as Account;
       await q('INSERT INTO auth_credentials (account_id, password_hash) VALUES ($1, $2)', [account.id, passwordHash]);
@@ -41,12 +64,18 @@ export class AccountsService {
   }
 
   async verifyPassword(params: { phone: string; password: string }): Promise<Account | null> {
-    const phoneE164 = normalizePhoneToE164(params.phone);
+    let phoneE164: string;
+    try {
+      phoneE164 = normalizePhoneToE164(params.phone);
+    } catch {
+      return null;
+    }
 
     const res = await this.db.query<{
       id: string;
       phone_e164: string;
       display_name: string | null;
+      nida_number: string | null;
       status: string;
       created_at: string;
       updated_at: string;
