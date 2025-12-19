@@ -8,6 +8,10 @@ export type Account = {
   phone_e164: string;
   display_name: string | null;
   nida_number?: string | null;
+  nida_verification_status?: 'not_provided' | 'pending' | 'verified' | 'failed' | string;
+  nida_verification_updated_at?: string | null;
+  nida_verified_at?: string | null;
+  nida_verification_failure_reason?: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -31,6 +35,7 @@ export class AccountsService {
       throw new BadRequestException(message);
     }
     const passwordHash = await argon2.hash(params.password);
+    const nidaVerificationStatus = params.nidaNumber ? 'pending' : 'not_provided';
 
     return this.db.withTransaction(async (q) => {
       const existing = await q('SELECT id FROM accounts WHERE phone_e164 = $1', [phoneE164]);
@@ -41,8 +46,18 @@ export class AccountsService {
       let created;
       try {
         created = await q(
-          'INSERT INTO accounts (phone_e164, display_name, nida_number) VALUES ($1, $2, $3) RETURNING *',
-          [phoneE164, params.displayName ?? null, params.nidaNumber ?? null],
+          `
+          INSERT INTO accounts (
+            phone_e164,
+            display_name,
+            nida_number,
+            nida_verification_status,
+            nida_verification_updated_at
+          )
+          VALUES ($1, $2, $3, $4, CASE WHEN $3 IS NULL THEN NULL ELSE now() END)
+          RETURNING *
+          `,
+          [phoneE164, params.displayName ?? null, params.nidaNumber ?? null, nidaVerificationStatus],
         );
       } catch (e) {
         const err = e as any;
@@ -76,6 +91,10 @@ export class AccountsService {
       phone_e164: string;
       display_name: string | null;
       nida_number: string | null;
+      nida_verification_status: string;
+      nida_verification_updated_at: string | null;
+      nida_verified_at: string | null;
+      nida_verification_failure_reason: string | null;
       status: string;
       created_at: string;
       updated_at: string;

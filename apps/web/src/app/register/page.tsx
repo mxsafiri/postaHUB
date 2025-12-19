@@ -37,7 +37,7 @@ export default function RegisterPage() {
 
   return (
     <VideoBackground
-      src="/BG Landing.mp4"
+      src="/BG video 2.mp4"
       className="relative min-h-screen"
       overlayClassName="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/75"
     >

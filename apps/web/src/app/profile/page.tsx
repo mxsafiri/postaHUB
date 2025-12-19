@@ -4,9 +4,22 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { VideoBackground } from "../../components/VideoBackground";
-import { apiLogout, apiMe, MeResponse } from "../../lib/api";
+import { apiMe, MeResponse } from "../../lib/api";
 
-export default function DashboardPage() {
+function statusBadgeClass(status: string) {
+  switch (status) {
+    case "verified":
+      return "border-emerald-400/30 bg-emerald-400/10 text-emerald-50";
+    case "pending":
+      return "border-yellow-400/30 bg-yellow-400/10 text-yellow-50";
+    case "failed":
+      return "border-red-500/30 bg-red-500/10 text-red-50";
+    default:
+      return "border-white/20 bg-white/10 text-white/90";
+  }
+}
+
+export default function ProfilePage() {
   const [me, setMe] = useState<MeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,10 +45,7 @@ export default function DashboardPage() {
     };
   }, []);
 
-  async function onLogout() {
-    await apiLogout();
-    window.location.href = "/";
-  }
+  const status = me?.account.nidaVerificationStatus ?? "not_provided";
 
   return (
     <VideoBackground
@@ -47,7 +57,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-white">
-              Dashboard
+              Profile
             </h1>
             <p className="mt-1 text-sm text-white/70">
               postaHUB — Connecting the digital world to you!
@@ -55,31 +65,17 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/dashboard"
+              className="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/15"
+            >
+              Dashboard
+            </Link>
+            <Link
               href="/"
               className="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/15"
             >
               Home
             </Link>
-            <Link
-              href="/profile"
-              className="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/15"
-            >
-              Profile
-            </Link>
-            {me?.roles?.includes("platform_admin") ? (
-              <Link
-                href="/admin"
-                className="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/15"
-              >
-                Admin
-              </Link>
-            ) : null}
-            <button
-              onClick={onLogout}
-              className="rounded-full bg-[var(--posta-red)] px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
-            >
-              Logout
-            </button>
           </div>
         </div>
 
@@ -99,7 +95,7 @@ export default function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
                 <div className="text-xs uppercase tracking-wider text-white/50">
                   Account
@@ -109,29 +105,26 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-sm text-white/70">{me?.account.phoneE164}</div>
               </div>
+
               <div>
                 <div className="text-xs uppercase tracking-wider text-white/50">
-                  Identity
+                  National ID (NIDA)
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90">
-                    NIDA: {me?.account.nidaVerificationStatus ?? "not_provided"}
+                    {me?.account.nidaNumber ?? "Not provided"}
+                  </span>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${statusBadgeClass(
+                      String(status),
+                    )}`}
+                  >
+                    {String(status).replaceAll("_", " ")}
                   </span>
                 </div>
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-wider text-white/50">
-                  Roles
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(me?.roles ?? []).map((r) => (
-                    <span
-                      key={r}
-                      className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90"
-                    >
-                      {r}
-                    </span>
-                  ))}
+                <div className="mt-3 text-xs text-white/55">
+                  Verification is currently a stub. Once NIDA authority integration is available,
+                  this status will update automatically.
                 </div>
               </div>
             </div>

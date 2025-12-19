@@ -62,6 +62,7 @@ export class AuthController {
         phoneE164: account.phone_e164,
         displayName: account.display_name,
         nidaNumber: (account as any).nida_number ?? null,
+        nidaVerificationStatus: (account as any).nida_verification_status ?? 'not_provided',
         status: account.status,
       },
       roles: roles.map((r) => r.key),
